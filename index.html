@@ -1,0 +1,140 @@
+
+<!DOCTYPE html>
+<html>
+<head>
+	<title>Minesweeper solver</title>
+
+</head>
+<body style="background-image: radial-gradient(farthest-side at 40px 50px, #68ED26, #B02CED);">
+	<div style="text-align: center">
+		<div style="margin-bottom: 20px; -ms-user-select: none; -webkit-user-select: none; -moz-user-select: -moz-none;">
+	<div style="display: inline-block; width: 484px">
+		<div style="width: 480px; border: 3px solid #ED2124; padding: 4px; display: inline-block; font: normal 14pt sans-serif; background-color: #ED2124; color: white"><span id="MessageDiv"></span></div>
+		<br>
+		<div id="MinesLeftDiv" class="InfoBox">Mines <span id="MinesLeftSpan"></span></div>
+		<div id="TapsDiv" class="InfoBox" style="display: none;">Taps <span id="TapsSpan"></span></div>
+		<div id="LivesDiv" class="InfoBox" style="display: none;">Lives <span id="LivesSpan"></span></div>
+		<div id="FlagsDiv" class="InfoBox" style="display: none;">Flags <span id="FlagsSpan"></span></div>
+		<div id="MovesDiv" class="InfoBox" style="display: none;">Moves <span id="MovesSpan"></span></div>
+		<br>
+		<button id="RequestHelpButton" style="margin: 4px">Next</button>
+		<button id="SolveBoardButton" style="margin: 4px">All</button>
+	</div>
+	<div>
+		<canvas id="MineBoardCanvas" style="border: 1px solid #000000;" oncontextmenu="return false" width="288" height="288">Your browser is not supported.</canvas>
+	</div>
+	<div>
+		<canvas id="Mine1Canvas" class="selected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine2Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine3Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine4Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine5Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine6Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine7Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine8Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="Mine0Canvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="MineFCanvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+		<canvas id="MineCCanvas" class="unselected" oncontextmenu="return false" width="32" height="32"></canvas>
+	</div>
+	<div style="margin:10px;">
+		<button id="ResetGameButton">Reset board</button>
+	<div class="InfoBox" style="width: 484px">
+		<div>Select a different grid size: </div><br />
+		<form onsubmit="if (GridSizeM.value >= GridSizeW.value * GridSizeH.value) alert('Invalid mines count value!'); else { mineSweeperWidth = parseInt(GridSizeW.value); mineSweeperHeight = parseInt(GridSizeH.value); mineSweeperMines = parseInt(GridSizeM.value); document.getElementById('ResetGameButton').click(); } return false;">
+			<label>Width: <input type="number" min="1" max="30" name="GridSizeW" id="MineGridSizeW" class="GridSize" /></label>
+			<label>Height: <input type="number" min="1" max="30" name="GridSizeH" id="MineGridSizeH" class="GridSize" /></label>
+			<label>Mines: <input type="number" min="0" max="900" name="GridSizeM" id="MineGridSizeM" class="GridSize" /></label>
+			<input type="submit" value="Change grid" />
+		</form>
+	</div>
+</div>
+
+</div>
+
+<style>
+	div.InfoBox {
+		border: 3px solid #87CEFA;
+		padding: 4px;
+		margin: 4px;
+		display: inline-block;
+		font: normal 14pt sans-serif;
+		background-color: #6495ED;
+		color: white;
+	}
+
+	canvas.selected {
+		border: 3px solid #3CB371;
+	}
+
+	canvas.unselected {
+		border: 1px solid #000000;
+		margin: 2px;
+	}
+
+	input.GridSize {
+		max-width: 32px;
+	}
+</style>
+
+<script>
+	var width, height, mines;
+	var useQuestions, smallSquares;
+
+	var mineSweeperBoardType;
+	var mineSweeperWidth;
+	var mineSweeperHeight;
+	var mineSweeperMines;
+	var mineSweeperQuestions;
+	var mineSweeperSmallSquares;
+	var mineSweeperSolver = true;
+
+	var requestedBoardType = getCookie("MineSweeperBoardType");
+	if (requestedBoardType == "Classic")
+		mineSweeperBoardType = 1;
+	else if (requestedBoardType == "Flags")
+		mineSweeperBoardType = 2;
+	else if (requestedBoardType == "Detonate")
+		mineSweeperBoardType = 3;
+	else if (requestedBoardType == "Taps")
+		mineSweeperBoardType = 4;
+	else if (requestedBoardType == "GreenFlags")
+		mineSweeperBoardType = 5;
+	else
+		mineSweeperBoardType = 0;
+
+	var requestedBoardOption = getCookie("MineSweeperBoardOption");
+	if (requestedBoardOption == "Easy") {
+		mineSweeperWidth = 9; mineSweeperHeight = 9; mineSweeperMines = 10;
+	}
+	else if (requestedBoardOption == "Expert") {
+		mineSweeperWidth = 30; mineSweeperHeight = 16; mineSweeperMines = 99;
+	}
+	else {
+		mineSweeperWidth = 16; mineSweeperHeight = 16; mineSweeperMines = 40;
+	}
+
+	document.getElementById("MineGridSizeW").value = mineSweeperWidth;
+	document.getElementById("MineGridSizeH").value = mineSweeperHeight;
+	document.getElementById("MineGridSizeM").value = mineSweeperMines;
+
+	mineSweeperQuestions = getCookie("MineSweeperBoardOptionQuestion") == "true";
+	mineSweeperSmallSquares = getCookie("MineSweeperBoardOptionSmallSquares") == "true";
+
+	function getCookie(cname) {
+		var name = cname + "=";
+		var decodedCookie = decodeURIComponent(document.cookie);
+		var ca = decodedCookie.split(';');
+		for (var i = 0; i < ca.length; i++) {
+			var c = ca[i];
+			while (c.charAt(0) == ' ')
+				c = c.substring(1);
+			if (c.indexOf(name) == 0)
+				return c.substring(name.length, c.length);
+		}
+		return "";
+	}
+</script>
+<script src="MineSweeper.js"></script>
+	</div>
+</body>
+</html>
